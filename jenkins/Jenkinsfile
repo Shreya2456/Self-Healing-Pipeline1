@@ -1,0 +1,109 @@
+pipeline {
+    agent any
+    
+    environment {
+        APP_NAME = 'self-healing-app'
+        DOCKER_IMAGE = "shreya6006/self-healing-app"
+    }
+    
+    stages {
+        
+        stage('🎯 Clone Repository') {
+            steps {
+                echo "Cloning repository from GitHub..."
+                retry(2) {
+                    git branch: 'main', 
+                        url: 'https://github.com/Shreya2456/SElf-healing-pipeline.git'
+                }
+                echo "✅ Repository cloned successfully!"
+            }
+        }
+        
+        stage('🐳 Build Docker Image') {
+            steps {
+                echo "Building Docker image..."
+                bat "docker build -t %DOCKER_IMAGE%:latest ./app"
+                echo "✅ Build completed!"
+            }
+        }
+        
+        stage('🧪 Run Tests') {
+            steps {
+                echo "Cleaning up any existing test container..."
+                bat "(docker stop test-%APP_NAME% || exit 0) > nul 2>&1"
+                bat "(docker rm test-%APP_NAME% || exit 0) > nul 2>&1"
+                
+                echo "Starting container for testing on port 9090..."
+                bat "docker run -d --name test-%APP_NAME% -p 9090:5000 %DOCKER_IMAGE%:latest"
+                
+                echo "Waiting for container to initialize..."
+                bat "ping -n 6 127.0.0.1 > nul"
+                
+                echo "Testing container health..."
+                bat "curl -f http://localhost:9090/health"
+                
+                echo "✅ All tests passed!"
+                
+                echo "Cleaning up test container..."
+                bat "(docker stop test-%APP_NAME% || exit 0) > nul 2>&1"
+                bat "(docker rm test-%APP_NAME% || exit 0) > nul 2>&1"
+            }
+        }
+        
+        stage('📤 Push to Docker Hub') {
+            steps {
+                echo "Pushing image to Docker Hub..."
+                withDockerRegistry([credentialsId: 'shreya6006', url: 'https://index.docker.io/v1/']) {
+                    bat "docker push %DOCKER_IMAGE%:latest"
+                }
+                echo "✅ Image pushed successfully!"
+            }
+        }
+        
+        stage('🚀 Deploy Application') {
+            steps {
+                echo "Deploying application..."
+                bat "(docker-compose -f docker-compose.yml down || exit 0) > nul 2>&1"
+                bat "docker-compose -f docker-compose.yml up -d"
+                echo "✅ Deployment complete!"
+                echo "📍 Application: http://localhost:5000"
+            }
+        }
+        
+        stage('🩺 Health Check') {
+            steps {
+                echo "Waiting for application to stabilize..."
+                bat "ping -n 11 127.0.0.1 > nul"
+                echo "Checking health endpoint..."
+                bat "curl -f http://localhost:5000/health"
+                echo "✅ Application is healthy!"
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo """
+            ┌─────────────────────────────────────────────────────────┐
+            │  ✅ SELF-HEALING PIPELINE SUCCEEDED! ✅                 │
+            │                                                          │
+            │  🚀 Application: http://localhost:5000                  │
+            │  ❤️ Health check: http://localhost:5000/health         │
+            │                                                          │
+            │  ✨ Features demonstrated:                              │
+            │  • Automated Docker builds                              │
+            │  • Container testing with health checks                 │
+            │  • Docker Hub integration                               │
+            │  • Auto-deployment with Docker Compose                  │
+            └─────────────────────────────────────────────────────────┘
+            """
+        }
+        failure {
+            echo """
+            ┌─────────────────────────────────────────────────────────┐
+            │  ❌ PIPELINE FAILED ❌                                   │
+            └─────────────────────────────────────────────────────────┘
+            """
+        }
+    }
+}
