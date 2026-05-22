@@ -29,9 +29,14 @@ pipeline {
         
         stage('🧪 Run Tests') {
             steps {
+                // echo "Cleaning up any existing test container..."
+                // bat "(docker stop test-%APP_NAME% || exit 0) > nul 2>&1"
+                // bat "(docker rm test-%APP_NAME% || exit 0) > nul 2>&1"
                 echo "Cleaning up any existing test container..."
-                bat "(docker stop test-%APP_NAME% || exit 0) > nul 2>&1"
-                bat "(docker rm test-%APP_NAME% || exit 0) > nul 2>&1"
+                bat '''
+                docker rm -f test-%APP_NAME% 2>nul
+                exit /b 0
+                '''
                 
                 echo "Starting container for testing on port 9090..."
                  bat "docker run -d --name test-%APP_NAME% -p 9090:5000 %DOCKER_IMAGE%:latest"
