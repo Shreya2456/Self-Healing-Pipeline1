@@ -34,8 +34,8 @@ pipeline {
                 bat "(docker rm test-%APP_NAME% || exit 0) > nul 2>&1"
                 
                 echo "Starting container for testing on port 9090..."
-                bat "docker run -d --name test-%APP_NAME% -p 9090:5000 %DOCKER_IMAGE%:latest"
-                
+                // bat "docker run -d --name test-%APP_NAME% -p 9090:5000 %DOCKER_IMAGE%:latest"
+               bat  "docker run -d --name test-self-healing-app-%BUILD_NUMBER% -p 9090:5000 shreya6006/self-healing-app:latest"
                 echo "Waiting for container to initialize..."
                 bat "ping -n 6 127.0.0.1 > nul"
                 

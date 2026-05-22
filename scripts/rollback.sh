@@ -11,7 +11,7 @@ docker-compose down
 
 # Remove the failed image tag
 echo "🗑️  Removing failed image..."
-docker rmi ram9219/self-healing-app:latest 2>/dev/null || true
+docker rmi shreya6006/self-healing-app:latest 2>/dev/null || true
 
 # Restart with previous version (if available)
 echo "🔄 Restarting with previous stable version..."
